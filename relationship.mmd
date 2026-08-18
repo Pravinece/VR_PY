@@ -1,0 +1,84 @@
+erDiagram
+
+    users {
+        ObjectId _id PK
+        string username
+        string emp_id
+        string password
+        string role
+        bool is_first_login
+        string gender
+        datetime created_at
+        datetime updated_at
+    }
+
+    assets {
+        ObjectId _id PK
+        string name
+        string gender
+        string type
+        string image
+        bool is_default
+        datetime created_at
+    }
+
+    avatars {
+        ObjectId _id PK
+        ObjectId user_id FK
+        string gender
+        array equipped_assets
+    }
+
+    unlocked_assets {
+        ObjectId _id PK
+        ObjectId user_id FK
+        ObjectId asset_id FK
+        datetime unlocked_at
+    }
+
+    skate_sessions {
+        ObjectId _id PK
+        ObjectId user_id FK
+        string mode
+        int score
+        int coins
+        int health
+        int time
+        datetime played_at
+        array gifts
+        array boosters
+        array test
+    }
+
+    cleandeal_sessions {
+        ObjectId _id PK
+        ObjectId user_id FK
+        int attempt
+        int score
+        float percentage
+        int time_taken
+        datetime played_at
+        array stages
+    }
+
+    user_best_scores {
+        ObjectId _id PK
+        ObjectId user_id FK
+        ObjectId session_id FK
+        string game_type
+        int best_score
+        datetime achieved_at
+    }
+
+    users ||--o{ avatars : "has (max 2)"
+    users ||--o{ unlocked_assets : "has"
+    users ||--o{ skate_sessions : "plays"
+    users ||--o{ cleandeal_sessions : "plays"
+    users ||--o{ user_best_scores : "has"
+
+    assets ||--o{ unlocked_assets : "unlocked by"
+    assets }o--o{ avatars : "equipped in"
+    assets }o--o{ skate_sessions : "gifted in"
+
+    skate_sessions ||--o| user_best_scores : "best score ref"
+    cleandeal_sessions ||--o| user_best_scores : "best score ref"

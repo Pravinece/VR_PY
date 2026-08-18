@@ -1,0 +1,52 @@
+import logging
+from datetime import datetime, timezone
+from passlib.context import CryptContext
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from app.schema.userSchema import CreateUserReq, CreateUserRes
+from app.models.userModel import UserModel
+from app.core.exception import AppException
+
+logger = logging.getLogger(__name__)
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class UserService:
+    def __init__(self, db: AsyncIOMotorDatabase):
+        self.collection = db["users"]
+
+    async def create_user(self, payload: CreateUserReq) -> CreateUserRes:
+        try:
+            existing = await self.collection.find_one({"emp_id": payload.emp_id})
+            if existing:
+                raise AppException(status_code=409, message="Employee ID already exists")
+
+            now = datetime.now(timezone.utc)
+            user_model = UserModel(
+                username=payload.username,
+                emp_id=payload.emp_id,
+                role=payload.role,
+                gender=payload.gender,
+                password=pwd_context.hash("Welcome@123"),
+                is_first_login=True,
+                created_at=now,
+                updated_at=now,
+            )
+
+            await self.collection.insert_one(user_model.model_dump(by_alias=True))
+
+            return CreateUserRes(
+                id=user_model.id,
+                username=user_model.username,
+                emp_id=user_model.emp_id,
+                role=user_model.role,
+                gender=user_model.gender,
+                is_first_login=user_model.is_first_login,
+                created_at=user_model.created_at,
+                updated_at=user_model.updated_at,
+            )
+        except AppException:
+            raise
+        except Exception:
+            logger.exception("Unexpected error in create_user")
+            raise AppException(status_code=500, message="Failed to create user")

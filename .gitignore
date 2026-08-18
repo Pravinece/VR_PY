@@ -1,0 +1,86 @@
+# =========================
+# FastAPI / Python
+# =========================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# =========================
+# Virtual Environments
+# =========================
+venv/
+.venv/
+env/
+.env_venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =========================
+# Environment Variables & Secrets
+# =========================
+# NEVER COMMIT YOUR .env FILE!
+.env
+.env.*
+!.env.example
+
+# =========================
+# Databases
+# =========================
+*.sqlite
+*.sqlite3
+*.db
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Testing & Coverage
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+
+# =========================
+# Type Checking & Linting
+# =========================
+.mypy_cache/
+.ruff_cache/
+.pre-commit-config.yaml.rej
+
+# =========================
+# OS Generated Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =========================
+# IDEs & Editors
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Build / Packaging / Docker
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+.dockerignore
