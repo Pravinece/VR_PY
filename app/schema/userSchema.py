@@ -27,3 +27,12 @@ class CreateUserRes(BaseModel):
     is_first_login: bool
     created_at: datetime
     updated_at: datetime
+
+class LoginReq(BaseModel):
+    emp_id: str
+    password: str
+
+
+class LoginRes(BaseModel):
+    token: str
+    logged_user: CreateUserRes

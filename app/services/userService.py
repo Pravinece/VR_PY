@@ -1,15 +1,16 @@
 import logging
+import bcrypt
+
 from datetime import datetime, timezone
-from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.schema.userSchema import CreateUserReq, CreateUserRes
+from app.schema.userSchema import CreateUserReq, CreateUserRes, LoginRes
 from app.models.userModel import UserModel
 from app.core.exception import AppException
+from app.core.security import JWTHandler
 
 logger = logging.getLogger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+hashed = bcrypt.hashpw("Welcome@123".encode(), bcrypt.gensalt()).decode()
 
 class UserService:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -27,7 +28,7 @@ class UserService:
                 emp_id=payload.emp_id,
                 role=payload.role,
                 gender=payload.gender,
-                password=pwd_context.hash("Welcome@123"),
+                password=hashed,
                 is_first_login=True,
                 created_at=now,
                 updated_at=now,
@@ -50,3 +51,36 @@ class UserService:
         except Exception:
             logger.exception("Unexpected error in create_user")
             raise AppException(status_code=500, message="Failed to create user")
+
+    async def login_user(self, emp_id: str, password: str) -> LoginRes:
+        try:
+            user = await self.collection.find_one({"emp_id": emp_id})
+            if not user:
+                raise AppException(status_code=401, message="Invalid credentials")
+            
+            # Check password
+            decrypted = bcrypt.checkpw(password.encode(), user["password"].encode())
+            if not decrypted:
+                raise AppException(status_code=401, message="Invalid credentials")
+
+            token = JWTHandler.create_access_token(subject=str({
+                "empId": user["emp_id"],
+                "id": str(user["_id"]),
+                "role": user["role"]
+            }))
+            logged_user = CreateUserRes(
+                id=str(user["_id"]),
+                username=user["username"],
+                emp_id=user["emp_id"],
+                role=user["role"],
+                gender=user["gender"],
+                is_first_login=user["is_first_login"],
+                created_at=user["created_at"],
+                updated_at=user["updated_at"],
+            )
+            return LoginRes(token=token, logged_user=logged_user)
+        except AppException:
+            raise
+        except Exception:
+            logger.exception("Unexpected error in login_user")
+            raise AppException(status_code=500, message="Login failed")
