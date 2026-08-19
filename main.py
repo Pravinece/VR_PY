@@ -18,7 +18,10 @@ async def lifespan(app: FastAPI):
     await mongodb.close()
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    swagger_ui_parameters={"persistAuthorization": True},
+)
 
 register_exception_handlers(app)
 

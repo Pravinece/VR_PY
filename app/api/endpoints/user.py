@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.db import mongodb
 from app.schema.userSchema import CreateUserReq, CreateUserRes, APIResponse, LoginRes, LoginReq
@@ -33,6 +34,15 @@ async def login(payload: LoginReq, db: AsyncIOMotorDatabase = Depends(get_db)):
     service = UserService(db)
     logged_user = await service.login_user(payload.emp_id, payload.password)
     return APIResponse(success=True, message="User login successfully", data=logged_user)
+
+
+# Swagger Authorize button uses this endpoint (OAuth2 password flow)
+@router.post("/token")
+async def token(form: OAuth2PasswordRequestForm = Depends(), db: AsyncIOMotorDatabase = Depends(get_db)):
+    service = UserService(db)
+    # username field is used as emp_id
+    result = await service.login_user(form.username, form.password)
+    return {"access_token": result.token, "token_type": "bearer"}
 
 @router.post("/seed")
 async def createSuperadmin(db: AsyncIOMotorDatabase = Depends(get_db)):
