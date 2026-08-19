@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Generic, TypeVar, Optional
+from app.models.userModel import RoleEnum, GenderEnum
 
 T = TypeVar("T")
 
@@ -14,8 +15,8 @@ class APIResponse(BaseModel, Generic[T]):
 class CreateUserReq(BaseModel):
     username: str
     emp_id: str
-    role: str
-    gender: str
+    role: RoleEnum
+    gender: GenderEnum
 
 
 class CreateUserRes(BaseModel):

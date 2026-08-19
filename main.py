@@ -21,6 +21,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     swagger_ui_parameters={"persistAuthorization": True},
+    openapi_extra={
+        "components": {
+            "securitySchemes": {
+                "BearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                }
+            }
+        },
+        "security": [{"BearerAuth": []}],
+    },
 )
 
 register_exception_handlers(app)

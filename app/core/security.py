@@ -1,12 +1,12 @@
-import ast
+import json
 from jose import JWTError, jwt
 from datetime import datetime, timezone, timedelta
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import settings
 from app.core.exception import AppException
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
+bearer_scheme = HTTPBearer()
 
 
 class JWTHandler:
@@ -24,12 +24,12 @@ class JWTHandler:
             return None
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
-    payload = JWTHandler.decode_token(token)
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> dict:
+    payload = JWTHandler.decode_token(credentials.credentials)
     if not payload:
         raise AppException(status_code=401, message="Invalid or expired token")
     try:
-        user = ast.literal_eval(payload["sub"])
+        user = json.loads(payload["sub"])
     except Exception:
         raise AppException(status_code=401, message="Invalid token payload")
     return user

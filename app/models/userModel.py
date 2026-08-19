@@ -30,25 +30,41 @@ class UserModel(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class AssetTypeEnum(str, Enum):
+    DRESS = "dress"
+    GUN = "gun"
+    SKATE = "skate"
+    WHEELS = "wheels"
+
+
 class AssetModel(BaseModel):
+    id: str = Field(default_factory=generate_uuid, alias="_id")
     name: str
-    gender: GenderEnum    
-    type: str  
+    gender: GenderEnum
+    type: AssetTypeEnum
     image: str
     is_default: bool = False
     created_at: datetime
 
+    model_config = {"populate_by_name": True}
+
 
 class AvatarModel(BaseModel):
-    user_id: str       
-    gender: GenderEnum         
-    equipped_assets: List[str] = []  
+    id: str = Field(default_factory=generate_uuid, alias="_id")
+    user_id: str
+    gender: GenderEnum
+    equipped_assets: List[str] = []
+
+    model_config = {"populate_by_name": True}
 
 
 class UnlockedAssetModel(BaseModel):
-    user_id: str                # ref: users._id
-    asset_id: str               # ref: assets._id
+    id: str = Field(default_factory=generate_uuid, alias="_id")
+    user_id: str
+    asset_id: str
     unlocked_at: datetime
+
+    model_config = {"populate_by_name": True}
 
 
 class BoosterModel(BaseModel):
