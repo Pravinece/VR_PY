@@ -30,6 +30,12 @@ class CreateUserRes(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class UpdateUserReq(BaseModel):
+    username: Optional[str] = None
+    emp_id: Optional[str] = None
+    gender: Optional[GenderEnum] = None
+
+
 class LoginReq(BaseModel):
     emp_id: str
     password: str

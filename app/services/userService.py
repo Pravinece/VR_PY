@@ -4,7 +4,7 @@ import json
 
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.schema.userSchema import CreateUserReq, CreateUserRes, LoginRes, ModifyPassRes, UserWithAvatarRes
+from app.schema.userSchema import CreateUserReq, CreateUserRes, LoginRes, ModifyPassRes, UserWithAvatarRes, UpdateUserReq
 from app.schema.avatarSchema import AvatarWithAssetsRes, EquippedAssetDetail
 from app.models.userModel import UserModel
 from app.core.exception import AppException
@@ -59,6 +59,42 @@ class UserService:
                 except Exception:
                     logger.exception("Unexpected error in create_user")
                     raise AppException(status_code=500, message="Failed to create user")
+
+    async def update_user(self, user_id: str, payload: UpdateUserReq) -> CreateUserRes:
+        try:
+            updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+            if not updates:
+                raise AppException(status_code=400, message="No fields to update")
+
+            if "emp_id" in updates:
+                existing = await self.collection.find_one({"emp_id": updates["emp_id"], "_id": {"$ne": user_id}})
+                if existing:
+                    raise AppException(status_code=409, message="Employee ID already exists")
+
+            updates["updated_at"] = datetime.now(timezone.utc)
+            user = await self.collection.find_one_and_update(
+                {"_id": user_id},
+                {"$set": updates},
+                return_document=True,
+            )
+            if not user:
+                raise AppException(status_code=404, message="User not found")
+
+            return CreateUserRes(
+                id=str(user["_id"]),
+                username=user["username"],
+                emp_id=user["emp_id"],
+                role=user["role"],
+                gender=user["gender"],
+                is_first_login=user["is_first_login"],
+                created_at=user["created_at"],
+                updated_at=user["updated_at"],
+            )
+        except AppException:
+            raise
+        except Exception:
+            logger.exception("Unexpected error in update_user")
+            raise AppException(status_code=500, message="Failed to update user")
 
     async def get_user_by_id(self, user_id: str) -> dict:
         user = await self.collection.find_one({"_id": user_id})

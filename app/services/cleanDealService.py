@@ -39,7 +39,7 @@ class CleanDealService:
                 async with mongo_session.start_transaction():
                     await self.collection.insert_one(session.model_dump(by_alias=True), session=mongo_session)
                     await self.best_score_service.upsert_best_score(
-                        payload.user_id, GAME_TYPE, MODE, payload.score, session.id, session=mongo_session
+                        payload.user_id, GAME_TYPE, MODE, payload.score, payload.time_taken, session.id, session=mongo_session
                     )
 
             return CleanDealSessionRes(

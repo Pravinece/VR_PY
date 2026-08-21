@@ -129,6 +129,7 @@ class UserBestScoreModel(BaseModel):
     game_type: str              # "skating" | "cleandeal"
     mode: str                   # "easy" | "medium" | "hard"
     best_score: int
+    time_taken: int             # seconds
     session_id: str             # ref: skate_sessions._id or cleandeal_sessions._id
     achieved_at: datetime
 
