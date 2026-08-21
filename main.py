@@ -41,7 +41,7 @@ app = FastAPI(
 
 register_exception_handlers(app)
 
-app.mount("/static", StaticFiles(directory="uploads"), name="static")
+app.mount("/static", StaticFiles(directory="/home/devops/VR_PY/uploads"), name="static")
 
 app.include_router(api_router, prefix="/api")
 
