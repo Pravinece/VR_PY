@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.db import mongodb
-from app.schema.userSchema import CreateUserReq, CreateUserRes, APIResponse, LoginRes, LoginReq, ModifyPassRes, RegeneratePasswordReq, UserWithAvatarRes
+from app.schema.userSchema import CreateUserReq, CreateUserRes, APIResponse, LoginRes, LoginReq, ModifyPassRes, RegeneratePasswordReq, UserWithAvatarRes, UpdateUserReq
 from app.schema.avatarSchema import AvatarWithAssetsRes, EquipAssetReq
 from app.services.userService import UserService
 from app.services.avatarService import AvatarService
@@ -66,6 +66,18 @@ async def reset_password(user_id: str,
     updated_user = await service.reset_password(user_id)
     return APIResponse(success=True, message="Password reset successfully", data=updated_user)
     
+
+@router.patch("/users/{user_id}", response_model=APIResponse[CreateUserRes])
+async def update_user(
+    user_id: str,
+    payload: UpdateUserReq,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(require_roles("superadmin")),
+):
+    service = UserService(db)
+    user = await service.update_user(user_id, payload)
+    return APIResponse(success=True, message="User updated successfully", data=user)
+
 
 @router.patch("/users/{user_id}/equip", response_model=APIResponse[AvatarWithAssetsRes])
 async def equip_asset(
