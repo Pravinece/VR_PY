@@ -5,7 +5,7 @@ from app.core.db import mongodb
 from app.schema.unlockedAssetSchema import UnlockAssetReq, UnlockedAssetRes
 from app.schema.userSchema import APIResponse
 from app.services.unlockedAssetService import UnlockedAssetService
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_roles
 
 router = APIRouter()
 
@@ -25,12 +25,12 @@ async def get_unlocked_assets(
     return APIResponse(success=True, message="Unlocked assets fetched successfully", data=result)
 
 
-@router.post("/users/{user_id}/unlocked-assets", response_model=APIResponse[UnlockedAssetRes])
+@router.post("/users/{user_id}/unlock-assets", response_model=APIResponse[UnlockedAssetRes])
 async def unlock_asset(
     user_id: str,
     payload: UnlockAssetReq,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_roles("user")),
 ):
     service = UnlockedAssetService(db)
     result = await service.unlock_asset(user_id, payload)
@@ -42,7 +42,7 @@ async def delete_unlocked_asset(
     user_id: str,
     asset_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_roles("superadmin")),
 ):
     service = UnlockedAssetService(db)
     await service.delete_unlocked_asset(user_id, asset_id)

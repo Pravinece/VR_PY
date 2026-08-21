@@ -38,7 +38,7 @@ async def update_asset(
 @router.get("/assets", response_model=APIResponse[AssetListRes])
 async def get_assets(
     db: AsyncIOMotorDatabase = Depends(get_db),
-    current_user: dict = Depends(require_roles("superadmin")),
+    current_user: dict = Depends(require_roles("superadmin", "user")),
 ):
     service = AssetService(db)
     assets = await service.get_assets()

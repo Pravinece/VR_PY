@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.api.router import api_router
 from app.core.db import mongodb
@@ -36,6 +37,8 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 app.include_router(api_router, prefix="/api")
 

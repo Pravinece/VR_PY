@@ -49,6 +49,15 @@ class AssetService:
             if not updates:
                 raise AppException(status_code=400, message="No fields to update")
 
+            if updates.get("is_default"):
+                current = await self.collection.find_one({"_id": asset_id})
+                if not current:
+                    raise AppException(status_code=404, message="Asset not found")
+                type_val = updates.get("type") or current["type"]
+                gender_val = updates.get("gender") or current["gender"]
+                existing_default = await self.collection.find_one({"type": type_val, "gender": gender_val, "is_default": True, "_id": {"$ne": asset_id}})
+                if existing_default:
+                    raise AppException(status_code=409, message="A default asset for this type and gender already exists")
             result = await self.collection.find_one_and_update(
                 {"_id": asset_id},
                 {"$set": updates},

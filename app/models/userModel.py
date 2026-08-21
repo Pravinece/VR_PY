@@ -67,6 +67,16 @@ class UnlockedAssetModel(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class FileModel(BaseModel):
+    id: str = Field(default_factory=generate_uuid, alias="_id")
+    url: str
+    type: str
+    created_by: str
+    created_at: datetime
+
+    model_config = {"populate_by_name": True}
+
+
 class BoosterModel(BaseModel):
     name: str
     count: int
@@ -77,6 +87,7 @@ class TestModel(BaseModel):
     points: int
 
 class SkateSessionModel(BaseModel):
+    id: str = Field(default_factory=generate_uuid, alias="_id")
     user_id: str                # ref: users._id
     mode: str                   # "easy" | "medium" | "hard"
     score: int
@@ -100,19 +111,25 @@ class StageModel(BaseModel):
     questions: List[QuestionModel] = []
 
 class CleanDealSessionModel(BaseModel):
-    user_id: str                # ref: users._id
-    attempt: int                # 1, 2, 3... if time extended
+    id: str = Field(default_factory=generate_uuid, alias="_id")
+    user_id: str
+    attempt: int
     score: int
     percentage: float
-    time_taken: int             # seconds
+    time_taken: int
     played_at: datetime
     stages: List[StageModel] = []
 
+    model_config = {"populate_by_name": True}
 
 
 class UserBestScoreModel(BaseModel):
+    id: str = Field(default_factory=generate_uuid, alias="_id")
     user_id: str                # ref: users._id
     game_type: str              # "skating" | "cleandeal"
+    mode: str                   # "easy" | "medium" | "hard"
     best_score: int
     session_id: str             # ref: skate_sessions._id or cleandeal_sessions._id
     achieved_at: datetime
+
+    model_config = {"populate_by_name": True}
