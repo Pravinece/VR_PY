@@ -12,7 +12,7 @@ from app.core.security import require_roles
 
 router = APIRouter()
 
-UPLOAD_DIR = "uploads/images"
+UPLOAD_DIR = "/home/devops/VR_PY/uploads/images"
 ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png"}
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
