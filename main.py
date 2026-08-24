@@ -1,10 +1,12 @@
 import logging
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.api.router import api_router
 from app.core.db import mongodb
 from app.core.exception import register_exception_handlers
+from app.core.config import settings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +42,14 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="/home/devops/VR_PY/uploads"), name="static")
 
