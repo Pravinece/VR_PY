@@ -1,6 +1,5 @@
 import logging
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.api.router import api_router
@@ -50,8 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.mount("/static", StaticFiles(directory="/home/devops/VR_PY/uploads"), name="static")
 
 app.include_router(api_router, prefix="/api")
 
