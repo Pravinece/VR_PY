@@ -3,7 +3,8 @@ import math
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.userModel import CleanDealSessionModel
-from app.schema.cleanDealSchema import CreateCleanDealSessionReq, CleanDealSessionRes, PaginatedCleanDealSessionRes
+from app.schema.cleanDealSchema import CreateCleanDealSessionReq, CleanDealSessionRes, CleanDealSessionWithUserRes, PaginatedCleanDealSessionRes
+from app.schema.skateSessionSchema import SessionUserRes
 from app.services.bestScoreService import BestScoreService
 from app.core.exception import AppException
 
@@ -44,7 +45,13 @@ class CleanDealService:
 
             return CleanDealSessionRes(
                 id=session.id,
-                user_id=session.user_id,
+                user=SessionUserRes(
+                    id=str(user["_id"]),
+                    username=user["username"],
+                    emp_id=user["emp_id"],
+                    gender=user["gender"],
+                    role=user["role"],
+                ),
                 mode=MODE,
                 attempt=session.attempt,
                 score=session.score,
@@ -59,12 +66,33 @@ class CleanDealService:
             logger.exception("Unexpected error in create_session")
             raise AppException(status_code=500, message="Failed to create clean deal session")
 
-    async def get_session_by_id(self, session_id: str) -> CleanDealSessionRes:
+    async def get_session_by_id(self, session_id: str) -> CleanDealSessionWithUserRes:
         try:
             doc = await self.collection.find_one({"_id": session_id})
             if not doc:
                 raise AppException(status_code=404, message="Session not found")
-            return self._to_res(doc)
+            user = await self.users.find_one({"_id": doc["user_id"]})
+            if not user:
+                raise AppException(status_code=404, message="User not found")
+            from app.schema.skateSessionSchema import SessionUserRes
+            from app.schema.cleanDealSchema import CleanDealSessionWithUserRes
+            return CleanDealSessionWithUserRes(
+                id=str(doc["_id"]),
+                user=SessionUserRes(
+                    id=str(user["_id"]),
+                    username=user["username"],
+                    emp_id=user["emp_id"],
+                    gender=user["gender"],
+                    role=user["role"],
+                ),
+                mode=MODE,
+                attempt=doc["attempt"],
+                score=doc["score"],
+                percentage=doc["percentage"],
+                time_taken=doc["time_taken"],
+                played_at=doc["played_at"],
+                stages=doc.get("stages", []),
+            )
         except AppException:
             raise
         except Exception:
@@ -82,11 +110,9 @@ class CleanDealService:
             docs = await self.collection.find({"user_id": user_id}).sort("played_at", -1).skip(skip).limit(limit).to_list(length=limit)
 
             return PaginatedCleanDealSessionRes(
-                total=total,
-                page=page,
-                limit=limit,
+                total=total, page=page, limit=limit,
                 total_pages=math.ceil(total / limit) if total > 0 else 0,
-                sessions=[self._to_res(doc) for doc in docs],
+                sessions=[self._to_res(doc, user) for doc in docs],
             )
         except AppException:
             raise
@@ -94,10 +120,37 @@ class CleanDealService:
             logger.exception("Unexpected error in get_sessions_by_user")
             raise AppException(status_code=500, message="Failed to fetch clean deal sessions")
 
-    def _to_res(self, doc: dict) -> CleanDealSessionRes:
+    async def get_sessions(self, page: int, limit: int) -> PaginatedCleanDealSessionRes:
+        try:
+            skip = (page - 1) * limit
+            total = await self.collection.count_documents({})
+            docs = await self.collection.find().sort("played_at", -1).skip(skip).limit(limit).to_list(length=limit)
+
+            user_ids = list({doc["user_id"] for doc in docs})
+            user_docs = await self.users.find({"_id": {"$in": user_ids}}).to_list(length=None)
+            user_map = {u["_id"]: u for u in user_docs}
+
+            return PaginatedCleanDealSessionRes(
+                total=total, page=page, limit=limit,
+                total_pages=math.ceil(total / limit) if total > 0 else 0,
+                sessions=[self._to_res(doc, user_map.get(doc["user_id"])) for doc in docs],
+            )
+        except AppException:
+            raise
+        except Exception:
+            logger.exception("Unexpected error in get_sessions")
+            raise AppException(status_code=500, message="Failed to fetch clean deal sessions")
+
+    def _to_res(self, doc: dict, user: dict = None) -> CleanDealSessionRes:
         return CleanDealSessionRes(
             id=str(doc["_id"]),
-            user_id=doc["user_id"],
+            user=SessionUserRes(
+                id=str(user["_id"]) if user else "",
+                username=user["username"] if user else "Unknown",
+                emp_id=user["emp_id"] if user else "",
+                gender=user["gender"] if user else "",
+                role=user["role"] if user else "",
+            ),
             mode=MODE,
             attempt=doc["attempt"],
             score=doc["score"],

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.db import mongodb
 from app.core.security import get_current_user
-from app.schema.skateSessionSchema import CreateSkateSessionReq, SkateSessionRes, PaginatedSkateSessionRes
+from app.schema.skateSessionSchema import CreateSkateSessionReq, SkateSessionRes, SkateSessionWithUserRes, PaginatedSkateSessionRes
 from app.schema.userSchema import APIResponse
 from app.services.skateSessionService import SkateSessionService
 
@@ -25,7 +25,7 @@ async def create_skate_session(
     return APIResponse(success=True, message="Skate session created successfully", data=session)
 
 
-@router.get("/skate-sessions/session/{session_id}", response_model=APIResponse[SkateSessionRes])
+@router.get("/skate-sessions/session/{session_id}", response_model=APIResponse[SkateSessionWithUserRes])
 async def get_skate_session_by_id(
     session_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
@@ -34,6 +34,18 @@ async def get_skate_session_by_id(
     service = SkateSessionService(db)
     session = await service.get_session_by_id(session_id)
     return APIResponse(success=True, message="Skate session fetched successfully", data=session)
+
+
+@router.get("/skate-sessions", response_model=APIResponse[PaginatedSkateSessionRes])
+async def get_all_skate_sessions(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1, le=100),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    service = SkateSessionService(db)
+    result = await service.get_sessions(page, limit)
+    return APIResponse(success=True, message="Skate sessions fetched successfully", data=result)
 
 
 @router.get("/skate-sessions/{user_id}", response_model=APIResponse[PaginatedSkateSessionRes])

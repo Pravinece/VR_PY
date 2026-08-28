@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.db import mongodb
 from app.core.security import get_current_user
-from app.schema.cleanDealSchema import CreateCleanDealSessionReq, CleanDealSessionRes, PaginatedCleanDealSessionRes
+from app.schema.cleanDealSchema import CreateCleanDealSessionReq, CleanDealSessionRes, CleanDealSessionWithUserRes, PaginatedCleanDealSessionRes
 from app.schema.userSchema import APIResponse
 from app.services.cleanDealService import CleanDealService
 
@@ -24,7 +24,19 @@ async def create_cleandeal_session(
     return APIResponse(success=True, message="Clean deal session created successfully", data=session)
 
 
-@router.get("/cleandeal-sessions/session/{session_id}", response_model=APIResponse[CleanDealSessionRes])
+@router.get("/cleandeal-sessions", response_model=APIResponse[PaginatedCleanDealSessionRes])
+async def get_all_cleandeal_sessions(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=10, ge=1, le=100),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    service = CleanDealService(db)
+    result = await service.get_sessions(page, limit)
+    return APIResponse(success=True, message="Clean deal sessions fetched successfully", data=result)
+
+
+@router.get("/cleandeal-sessions/session/{session_id}", response_model=APIResponse[CleanDealSessionWithUserRes])
 async def get_cleandeal_session_by_id(
     session_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),

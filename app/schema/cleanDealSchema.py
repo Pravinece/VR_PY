@@ -13,9 +13,24 @@ class CreateCleanDealSessionReq(BaseModel):
     stages: List[StageModel] = []
 
 
+from app.schema.skateSessionSchema import SessionUserRes
+
+
 class CleanDealSessionRes(BaseModel):
     id: str
-    user_id: str
+    user: SessionUserRes
+    mode: str
+    attempt: int
+    score: int
+    percentage: float
+    time_taken: int
+    played_at: datetime
+    stages: List[StageModel]
+
+
+class CleanDealSessionWithUserRes(BaseModel):
+    id: str
+    user: SessionUserRes
     mode: str
     attempt: int
     score: int
