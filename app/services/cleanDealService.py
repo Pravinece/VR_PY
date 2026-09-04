@@ -1,161 +1,110 @@
 import logging
-import math
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.models.userModel import CleanDealSessionModel
-from app.schema.cleanDealSchema import CreateCleanDealSessionReq, CleanDealSessionRes, CleanDealSessionWithUserRes, PaginatedCleanDealSessionRes
-from app.schema.skateSessionSchema import SessionUserRes
-from app.services.bestScoreService import BestScoreService
+from app.models.userModel import CleanDealSessionModel, StageModel, QuestionModel
+from app.schema.cleanDealSchema import CreateCleanDealSessionReq, UpdateCleanDealSessionReq, CleanDealSessionRes
 from app.core.exception import AppException
+from app.services.userService import UserService
 
 logger = logging.getLogger(__name__)
-
-GAME_TYPE = "cleandeal"
-MODE = "easy"
 
 
 class CleanDealService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.collection = db["cleandeal_sessions"]
-        self.users = db["users"]
-        self.best_score_service = BestScoreService(db)
+        self.best_scores = db["user_best_scores"]
+        self.user_service = UserService(db)
+
+    def _to_res(self, doc: dict) -> CleanDealSessionRes:
+        total_score = sum(s.get("stage_score", 0) for s in doc.get("stages", []))
+        return CleanDealSessionRes(
+            id=doc["_id"],
+            user_id=doc["user_id"],
+            attempt=doc["attempt"],
+            percentage=doc["percentage"],
+            time_taken=doc["time_taken"],
+            played_at=doc["played_at"],
+            stages=doc.get("stages", []),
+            total_score=total_score,
+        )
+
+    async def _upsert_best_score(self, user_id: str, session_id: str, total_score: int):
+        existing = await self.best_scores.find_one({"user_id": user_id, "game_type": "cleandeal"})
+        if not existing or total_score > existing["best_score"]:
+            await self.best_scores.update_one(
+                {"user_id": user_id, "game_type": "cleandeal"},
+                {"$set": {
+                    "best_score": total_score,
+                    "session_id": session_id,
+                    "achieved_at": datetime.now(timezone.utc),
+                }},
+                upsert=True,
+            )
 
     async def create_session(self, payload: CreateCleanDealSessionReq) -> CleanDealSessionRes:
         try:
-            user = await self.users.find_one({"_id": payload.user_id})
-            if not user:
-                raise AppException(status_code=404, message="User not found")
+            await self.user_service.get_user_by_id(payload.user_id)
 
+            stage = StageModel(
+                stage_number=payload.stage.stage_number,
+                stage_score=payload.stage.stage_score,
+                questions=[QuestionModel(**q.model_dump()) for q in payload.stage.questions],
+            )
             session = CleanDealSessionModel(
                 user_id=payload.user_id,
                 attempt=payload.attempt,
-                score=payload.score,
-                percentage=payload.percentage,
-                time_taken=payload.time_taken,
+                score=stage.stage_score,
                 played_at=datetime.now(timezone.utc),
-                stages=payload.stages,
+                stages=[stage],
             )
+            await self.collection.insert_one(session.model_dump(by_alias=True))
 
-            async with await self.collection.database.client.start_session() as mongo_session:
-                async with mongo_session.start_transaction():
-                    await self.collection.insert_one(session.model_dump(by_alias=True), session=mongo_session)
-                    await self.best_score_service.upsert_best_score(
-                        payload.user_id, GAME_TYPE, MODE, payload.score, payload.time_taken, session.id, session=mongo_session
-                    )
+            total_score = stage.stage_score
+            await self._upsert_best_score(payload.user_id, session.id, total_score)
 
-            return CleanDealSessionRes(
-                id=session.id,
-                user=SessionUserRes(
-                    id=str(user["_id"]),
-                    username=user["username"],
-                    emp_id=user["emp_id"],
-                    gender=user["gender"],
-                    role=user["role"],
-                ),
-                mode=MODE,
-                attempt=session.attempt,
-                score=session.score,
-                percentage=session.percentage,
-                time_taken=session.time_taken,
-                played_at=session.played_at,
-                stages=session.stages,
-            )
+            doc = await self.collection.find_one({"_id": session.id})
+            return self._to_res(doc)
         except AppException:
             raise
         except Exception:
             logger.exception("Unexpected error in create_session")
             raise AppException(status_code=500, message="Failed to create clean deal session")
 
-    async def get_session_by_id(self, session_id: str) -> CleanDealSessionWithUserRes:
+    async def update_session(self, session_id: str, payload: UpdateCleanDealSessionReq) -> CleanDealSessionRes:
         try:
-            doc = await self.collection.find_one({"_id": session_id})
-            if not doc:
+            session = await self.collection.find_one({"_id": session_id})
+            if not session:
                 raise AppException(status_code=404, message="Session not found")
-            user = await self.users.find_one({"_id": doc["user_id"]})
-            if not user:
-                raise AppException(status_code=404, message="User not found")
-            from app.schema.skateSessionSchema import SessionUserRes
-            from app.schema.cleanDealSchema import CleanDealSessionWithUserRes
-            return CleanDealSessionWithUserRes(
-                id=str(doc["_id"]),
-                user=SessionUserRes(
-                    id=str(user["_id"]),
-                    username=user["username"],
-                    emp_id=user["emp_id"],
-                    gender=user["gender"],
-                    role=user["role"],
-                ),
-                mode=MODE,
-                attempt=doc["attempt"],
-                score=doc["score"],
-                percentage=doc["percentage"],
-                time_taken=doc["time_taken"],
-                played_at=doc["played_at"],
-                stages=doc.get("stages", []),
-            )
+
+            updates = {}
+
+            if payload.stage:
+                stage = StageModel(
+                    stage_number=payload.stage.stage_number,
+                    stage_score=payload.stage.stage_score,
+                    questions=[QuestionModel(**q.model_dump()) for q in payload.stage.questions],
+                )
+                await self.collection.update_one(
+                    {"_id": session_id},
+                    {"$push": {"stages": stage.model_dump()}},
+                )
+
+            if payload.percentage is not None:
+                updates["percentage"] = payload.percentage
+            if payload.time_taken is not None:
+                updates["time_taken"] = payload.time_taken
+
+            if updates:
+                await self.collection.update_one({"_id": session_id}, {"$set": updates})
+
+            doc = await self.collection.find_one({"_id": session_id})
+            total_score = sum(s.get("stage_score", 0) for s in doc.get("stages", []))
+            await self.collection.update_one({"_id": session_id}, {"$set": {"score": total_score}})
+            await self._upsert_best_score(session["user_id"], session_id, total_score)
+
+            return self._to_res(doc)
         except AppException:
             raise
         except Exception:
-            logger.exception("Unexpected error in get_session_by_id")
-            raise AppException(status_code=500, message="Failed to fetch clean deal session")
-
-    async def get_sessions_by_user(self, user_id: str, page: int, limit: int) -> PaginatedCleanDealSessionRes:
-        try:
-            user = await self.users.find_one({"_id": user_id})
-            if not user:
-                raise AppException(status_code=404, message="User not found")
-
-            skip = (page - 1) * limit
-            total = await self.collection.count_documents({"user_id": user_id})
-            docs = await self.collection.find({"user_id": user_id}).sort("played_at", -1).skip(skip).limit(limit).to_list(length=limit)
-
-            return PaginatedCleanDealSessionRes(
-                total=total, page=page, limit=limit,
-                total_pages=math.ceil(total / limit) if total > 0 else 0,
-                sessions=[self._to_res(doc, user) for doc in docs],
-            )
-        except AppException:
-            raise
-        except Exception:
-            logger.exception("Unexpected error in get_sessions_by_user")
-            raise AppException(status_code=500, message="Failed to fetch clean deal sessions")
-
-    async def get_sessions(self, page: int, limit: int) -> PaginatedCleanDealSessionRes:
-        try:
-            skip = (page - 1) * limit
-            total = await self.collection.count_documents({})
-            docs = await self.collection.find().sort("played_at", -1).skip(skip).limit(limit).to_list(length=limit)
-
-            user_ids = list({doc["user_id"] for doc in docs})
-            user_docs = await self.users.find({"_id": {"$in": user_ids}}).to_list(length=None)
-            user_map = {u["_id"]: u for u in user_docs}
-
-            return PaginatedCleanDealSessionRes(
-                total=total, page=page, limit=limit,
-                total_pages=math.ceil(total / limit) if total > 0 else 0,
-                sessions=[self._to_res(doc, user_map.get(doc["user_id"])) for doc in docs],
-            )
-        except AppException:
-            raise
-        except Exception:
-            logger.exception("Unexpected error in get_sessions")
-            raise AppException(status_code=500, message="Failed to fetch clean deal sessions")
-
-    def _to_res(self, doc: dict, user: dict = None) -> CleanDealSessionRes:
-        return CleanDealSessionRes(
-            id=str(doc["_id"]),
-            user=SessionUserRes(
-                id=str(user["_id"]) if user else "",
-                username=user["username"] if user else "Unknown",
-                emp_id=user["emp_id"] if user else "",
-                gender=user["gender"] if user else "",
-                role=user["role"] if user else "",
-            ),
-            mode=MODE,
-            attempt=doc["attempt"],
-            score=doc["score"],
-            percentage=doc["percentage"],
-            time_taken=doc["time_taken"],
-            played_at=doc["played_at"],
-            stages=doc.get("stages", []),
-        )
+            logger.exception("Unexpected error in update_session")
+            raise AppException(status_code=500, message="Failed to update clean deal session")

@@ -7,6 +7,7 @@ class BestScoreUser(BaseModel):
     id: str
     username: str
     emp_id: str
+    gender: str
 
 
 class BestScoreEntry(BaseModel):

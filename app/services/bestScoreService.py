@@ -82,6 +82,7 @@ class BestScoreService:
                     id=doc["user_id"],
                     username=user_map[doc["user_id"]]["username"] if doc["user_id"] in user_map else "Unknown",
                     emp_id=user_map[doc["user_id"]]["emp_id"] if doc["user_id"] in user_map else "",
+                    gender=user_map[doc["user_id"]]["gender"] if doc["user_id"] in user_map else "",
                 ),
                 game_type=doc["game_type"],
                 mode=doc["mode"],

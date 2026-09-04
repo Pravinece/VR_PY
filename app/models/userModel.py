@@ -107,16 +107,17 @@ class QuestionModel(BaseModel):
     points: int
 
 class StageModel(BaseModel):
-    stage_number: int           # 1 to 7
+    stage_number: int
+    stage_score: int
     questions: List[QuestionModel] = []
 
 class CleanDealSessionModel(BaseModel):
     id: str = Field(default_factory=generate_uuid, alias="_id")
     user_id: str
-    attempt: int
-    score: int
-    percentage: float
-    time_taken: int
+    attempt: int = 1
+    score: int = 0
+    percentage: float = 0.0
+    time_taken: int = 0
     played_at: datetime
     stages: List[StageModel] = []
 
