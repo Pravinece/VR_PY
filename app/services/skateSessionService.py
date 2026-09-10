@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.userModel import SkateSessionModel
 from app.schema.skateSessionSchema import CreateSkateSessionReq, SkateSessionRes, SkateSessionWithUserRes, PaginatedSkateSessionRes, SessionUserRes, GiftAssetRes
-from app.services.bestScoreService import BestScoreService
 from app.core.exception import AppException
 
 logger = logging.getLogger(__name__)
@@ -14,7 +13,6 @@ class SkateSessionService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.collection = db["skate_sessions"]
         self.users = db["users"]
-        self.best_score_service = BestScoreService(db)
 
     async def create_session(self, payload: CreateSkateSessionReq) -> SkateSessionRes:
         try:
@@ -38,9 +36,6 @@ class SkateSessionService:
             async with await self.collection.database.client.start_session() as mongo_session:
                 async with mongo_session.start_transaction():
                     await self.collection.insert_one(session.model_dump(by_alias=True), session=mongo_session)
-                    await self.best_score_service.upsert_best_score(
-                        payload.user_id, "skating", payload.mode, payload.score, payload.time, session.id, session=mongo_session
-                    )
 
             return SkateSessionRes(
                 id=session.id,

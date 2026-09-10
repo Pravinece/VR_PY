@@ -18,6 +18,7 @@ class StageReq(BaseModel):
 class CreateCleanDealSessionReq(BaseModel):
     user_id: str
     attempt: int = 1
+    time_taken: int = 0
     stage: StageReq
 
 

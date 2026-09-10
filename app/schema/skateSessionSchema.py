@@ -14,14 +14,15 @@ class PaginatedSkateSessionRes(BaseModel):
 
 class CreateSkateSessionReq(BaseModel):
     user_id: str
-    mode: str                       # "easy" | "medium" | "hard"
+    mode: str
     score: int
     coins: int
     health: int
-    time: int                       # seconds
-    gifts: List[str] = []           # list of asset_ids
+    time: int
+    gifts: List[str] = []
     boosters: List[BoosterModel] = []
     test: List[TestModel] = []
+
 
 
 class SessionUserRes(BaseModel):

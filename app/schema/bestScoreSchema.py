@@ -3,6 +3,17 @@ from datetime import datetime
 from typing import List, Optional
 
 
+class UpdateCleanDealBestScoreReq(BaseModel):
+    user_id: str
+    session_id: str
+
+
+class UpdateSkateBestScoreReq(BaseModel):
+    user_id: str
+    session_id: str
+    mode: str
+
+
 class BestScoreUser(BaseModel):
     id: str
     username: str

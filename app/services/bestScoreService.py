@@ -12,6 +12,71 @@ class BestScoreService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.collection = db["user_best_scores"]
 
+    async def update_skate_best_score(self, user_id: str, session_id: str, mode: str):
+        from app.core.exception import AppException
+        sessions = self.collection.database["skate_sessions"]
+        session_doc = await sessions.find_one({"_id": session_id, "user_id": user_id})
+        if not session_doc:
+            raise AppException(status_code=404, message="Session not found for this user")
+
+        score = session_doc.get("score", 0)
+        time_taken = session_doc.get("time", 0)
+        existing = await self.collection.find_one({"user_id": user_id, "game_type": "skating", "mode": mode})
+        if not existing:
+            from app.models.userModel import UserBestScoreModel
+            doc = UserBestScoreModel(
+                user_id=user_id,
+                game_type="skating",
+                mode=mode,
+                best_score=score,
+                time_taken=time_taken,
+                session_id=session_id,
+                achieved_at=datetime.now(timezone.utc),
+            )
+            await self.collection.insert_one(doc.model_dump(by_alias=True))
+        elif score > existing["best_score"]:
+            await self.collection.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {
+                    "best_score": score,
+                    "time_taken": time_taken,
+                    "session_id": session_id,
+                    "achieved_at": datetime.now(timezone.utc),
+                }},
+            )
+
+    async def update_cleandeal_best_score(self, user_id: str, session_id: str):
+        from app.core.exception import AppException
+        sessions = self.collection.database["cleandeal_sessions"]
+        session_doc = await sessions.find_one({"_id": session_id, "user_id": user_id})
+        if not session_doc:
+            raise AppException(status_code=404, message="Session not found for this user")
+
+        total_score = sum(s.get("stage_score", 0) for s in session_doc.get("stages", []))
+        existing = await self.collection.find_one({"user_id": user_id, "game_type": "cleandeal"})
+        if not existing:
+            from app.models.userModel import UserBestScoreModel
+            doc = UserBestScoreModel(
+                user_id=user_id,
+                game_type="cleandeal",
+                mode="default",
+                best_score=total_score,
+                time_taken=session_doc.get("time_taken", 0),
+                session_id=session_id,
+                achieved_at=datetime.now(timezone.utc),
+            )
+            await self.collection.insert_one(doc.model_dump(by_alias=True))
+        elif total_score > existing["best_score"]:
+            await self.collection.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {
+                    "best_score": total_score,
+                    "time_taken": session_doc.get("time_taken", 0),
+                    "session_id": session_id,
+                    "achieved_at": datetime.now(timezone.utc),
+                }},
+            )
+
     async def upsert_best_score(self, user_id: str, game_type: str, mode: str, score: int, time_taken: int, session_id: str, session=None):
         existing = await self.collection.find_one({"user_id": user_id, "game_type": game_type, "mode": mode}, session=session)
         if not existing:

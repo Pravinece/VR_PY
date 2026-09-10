@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 class CleanDealService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.collection = db["cleandeal_sessions"]
-        self.best_scores = db["user_best_scores"]
         self.user_service = UserService(db)
 
     def _to_res(self, doc: dict) -> CleanDealSessionRes:
@@ -28,19 +27,6 @@ class CleanDealService:
             total_score=total_score,
         )
 
-    async def _upsert_best_score(self, user_id: str, session_id: str, total_score: int):
-        existing = await self.best_scores.find_one({"user_id": user_id, "game_type": "cleandeal"})
-        if not existing or total_score > existing["best_score"]:
-            await self.best_scores.update_one(
-                {"user_id": user_id, "game_type": "cleandeal"},
-                {"$set": {
-                    "best_score": total_score,
-                    "session_id": session_id,
-                    "achieved_at": datetime.now(timezone.utc),
-                }},
-                upsert=True,
-            )
-
     async def create_session(self, payload: CreateCleanDealSessionReq) -> CleanDealSessionRes:
         try:
             await self.user_service.get_user_by_id(payload.user_id)
@@ -54,13 +40,11 @@ class CleanDealService:
                 user_id=payload.user_id,
                 attempt=payload.attempt,
                 score=stage.stage_score,
+                time_taken=payload.time_taken,
                 played_at=datetime.now(timezone.utc),
                 stages=[stage],
             )
             await self.collection.insert_one(session.model_dump(by_alias=True))
-
-            total_score = stage.stage_score
-            await self._upsert_best_score(payload.user_id, session.id, total_score)
 
             doc = await self.collection.find_one({"_id": session.id})
             return self._to_res(doc)
@@ -100,7 +84,6 @@ class CleanDealService:
             doc = await self.collection.find_one({"_id": session_id})
             total_score = sum(s.get("stage_score", 0) for s in doc.get("stages", []))
             await self.collection.update_one({"_id": session_id}, {"$set": {"score": total_score}})
-            await self._upsert_best_score(session["user_id"], session_id, total_score)
 
             return self._to_res(doc)
         except AppException:
