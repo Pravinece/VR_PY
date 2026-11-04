@@ -8,7 +8,6 @@ class QuestionReq(BaseModel):
     answer: str
     points: int
 
-
 class StageReq(BaseModel):
     stage_number: int
     stage_score: int

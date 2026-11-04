@@ -13,6 +13,15 @@ async def get_db() -> AsyncIOMotorDatabase:
     return await mongodb.get_database()
 
 
+@router.get("/cleandeal", response_model=APIResponse[CleanDealSessionRes])
+async def getPastSessions(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    service = CleanDealService(db)
+    result = await service.get_past_sessions()
+    return APIResponse(success=True, message="Past sessions retrieved successfully", data=result)
+
 @router.post("/cleandeal/sessions", response_model=APIResponse[CleanDealSessionRes])
 async def create_session(
     payload: CreateCleanDealSessionReq,

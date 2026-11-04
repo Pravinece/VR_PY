@@ -15,7 +15,15 @@ class GenderEnum(str, Enum):
     MALE = "male"
     FEMALE = "female"
     
+class GameEnum(str, Enum):
+    cleanDeal = "cleanDeal"
+    skating = "skating"
 
+class AssetTypeEnum(str, Enum):
+    DRESS = "dress"
+    GUN = "gun"
+    SKATE = "skate"
+    WHEELS = "wheels"
 class UserModel(BaseModel):
     id: str = Field(default_factory=generate_uuid, alias="_id")
     username: str
@@ -28,14 +36,6 @@ class UserModel(BaseModel):
     updated_at: datetime
 
     model_config = {"populate_by_name": True}
-
-
-class AssetTypeEnum(str, Enum):
-    DRESS = "dress"
-    GUN = "gun"
-    SKATE = "skate"
-    WHEELS = "wheels"
-
 
 class AssetModel(BaseModel):
     id: str = Field(default_factory=generate_uuid, alias="_id")
@@ -54,7 +54,6 @@ class AvatarModel(BaseModel):
     user_id: str
     gender: GenderEnum
     equipped_assets: List[str] = []
-
     model_config = {"populate_by_name": True}
 
 
@@ -63,7 +62,6 @@ class UnlockedAssetModel(BaseModel):
     user_id: str
     asset_id: str
     unlocked_at: datetime
-
     model_config = {"populate_by_name": True}
 
 
@@ -73,7 +71,6 @@ class FileModel(BaseModel):
     type: str
     created_by: str
     created_at: datetime
-
     model_config = {"populate_by_name": True}
 
 
@@ -133,5 +130,15 @@ class UserBestScoreModel(BaseModel):
     time_taken: int             # seconds
     session_id: str             # ref: skate_sessions._id or cleandeal_sessions._id
     achieved_at: datetime
+
+    model_config = {"populate_by_name": True}
+    
+class StagesModel(BaseModel):
+    id: str = Field(default_factory=generate_uuid, alias="_id")
+    stage_number: int
+    stage_name: str
+    stage_description: str
+    stage_intro: List[str]
+    game: GameEnum
 
     model_config = {"populate_by_name": True}

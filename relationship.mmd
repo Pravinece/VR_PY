@@ -1,73 +1,83 @@
 erDiagram
 
     users {
-        ObjectId _id PK
+        string _id PK
         string username
         string emp_id
         string password
-        string role
+        string role "superadmin | user"
+        string gender "male | female"
         bool is_first_login
-        string gender
         datetime created_at
         datetime updated_at
     }
 
     assets {
-        ObjectId _id PK
+        string _id PK
         string name
-        string gender
-        string type
+        string gender "male | female | unisex"
+        string type "dress | gun | skate | wheels"
         string image
         bool is_default
         datetime created_at
     }
 
     avatars {
-        ObjectId _id PK
-        ObjectId user_id FK
-        string gender
-        array equipped_assets
+        string _id PK
+        string user_id FK
+        string gender "male | female"
+        array equipped_assets "asset_ids[]"
     }
 
     unlocked_assets {
-        ObjectId _id PK
-        ObjectId user_id FK
-        ObjectId asset_id FK
+        string _id PK
+        string user_id FK
+        string asset_id FK
         datetime unlocked_at
     }
 
     skate_sessions {
-        ObjectId _id PK
-        ObjectId user_id FK
-        string mode
+        string _id PK
+        string user_id FK
+        string mode "easy | medium | hard"
         int score
         int coins
         int health
-        int time
+        int time "seconds"
         datetime played_at
-        array gifts
-        array boosters
-        array test
+        array gifts "asset_ids[]"
+        array boosters "name, count"
+        array test "question, answer, points"
     }
 
     cleandeal_sessions {
-        ObjectId _id PK
-        ObjectId user_id FK
+        string _id PK
+        string user_id FK
         int attempt
         int score
         float percentage
-        int time_taken
+        int time_taken "seconds"
         datetime played_at
-        array stages
+        array stages "stage_number, stage_score, questions[]"
     }
 
     user_best_scores {
-        ObjectId _id PK
-        ObjectId user_id FK
-        ObjectId session_id FK
-        string game_type
+        string _id PK
+        string user_id FK
+        string session_id FK
+        string game_type "skating | cleandeal"
+        string mode "easy | medium | hard"
         int best_score
+        int time_taken "seconds"
         datetime achieved_at
+    }
+
+    files {
+        string _id PK
+        string url
+        string type
+        string created_by FK
+        datetime created_at
     }
 
     users ||--o{ avatars : "has (max 2)"
@@ -75,6 +85,7 @@ erDiagram
     users ||--o{ skate_sessions : "plays"
     users ||--o{ cleandeal_sessions : "plays"
     users ||--o{ user_best_scores : "has"
+    users ||--o{ files : "uploads"
 
     assets ||--o{ unlocked_assets : "unlocked by"
     assets }o--o{ avatars : "equipped in"
