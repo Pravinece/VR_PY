@@ -35,6 +35,8 @@ class UserService:
                         role=payload.role,
                         gender=payload.gender,
                         password=hashed,
+                        lastSkatingSession="",
+                        lastCleanDealSession="",
                         is_first_login=True,
                         created_at=now,
                         updated_at=now,
@@ -51,6 +53,8 @@ class UserService:
                         role=user_model.role,
                         gender=user_model.gender,
                         is_first_login=user_model.is_first_login,
+                        lastSkatingSession=user_model.lastSkatingSession,
+                        lastCleanDealSession=user_model.lastCleanDealSession,
                         created_at=user_model.created_at,
                         updated_at=user_model.updated_at,
                     )
@@ -87,6 +91,8 @@ class UserService:
                 role=user["role"],
                 gender=user["gender"],
                 is_first_login=user["is_first_login"],
+                lastCleanDealSession=user.get("lastCleanDealSession"),
+                lastSkatingSession=user.get("lastSkatingSession"),
                 created_at=user["created_at"],
                 updated_at=user["updated_at"],
             )
@@ -111,6 +117,7 @@ class UserService:
             role=user["role"],
             gender=user["gender"],
             is_first_login=user["is_first_login"],
+            
             created_at=user["created_at"],
             updated_at=user["updated_at"],
         )

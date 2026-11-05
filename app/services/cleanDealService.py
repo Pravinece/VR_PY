@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.models.userModel import CleanDealSessionModel, StageModel, QuestionModel
-from app.schema.cleanDealSchema import CreateCleanDealSessionReq, UpdateCleanDealSessionReq, CleanDealSessionRes
+from app.schema.cleanDealSchema import CleanDealQuestionModel, CleanDealSessionModel, CreateCleanDealSessionReq, FloorModel, UpdateCleanDealSessionReq, CleanDealSessionRes
 from app.core.exception import AppException
 from app.services.userService import UserService
 
@@ -27,26 +26,33 @@ class CleanDealService:
             total_score=total_score,
         )
 
+    async def update_last_session(self, user_id: str, session_id: str) -> CleanDealSessionRes:
+        try:
+            user = await self.user_service.find_one({"user_id": user_id})
+            if not user:
+                raise AppException(status_code=404, message="No user found")
+
+            return await self.collection.update_one(user_id, {lastCleanDealSession: session_id})
+        except AppException:
+            raise
+        except Exception:
+            logger.exception("Unexpected error in update_last_session")
+            raise AppException(status_code=500, message="Failed to update last clean deal session")
+        
     async def create_session(self, payload: CreateCleanDealSessionReq) -> CleanDealSessionRes:
         try:
-            await self.user_service.get_user_by_id(payload.user_id)
-
-            stage = StageModel(
-                stage_number=payload.stage.stage_number,
-                stage_score=payload.stage.stage_score,
-                questions=[QuestionModel(**q.model_dump()) for q in payload.stage.questions],
-            )
             session = CleanDealSessionModel(
                 user_id=payload.user_id,
                 attempt=payload.attempt,
-                score=stage.stage_score,
+                score=0,
                 time_taken=payload.time_taken,
                 played_at=datetime.now(timezone.utc),
-                stages=[stage],
+                stages=[],
             )
             await self.collection.insert_one(session.model_dump(by_alias=True))
-
+            await update_last_session(user_id=payload.user_id, session_id=session.id)
             doc = await self.collection.find_one({"_id": session.id})
+            
             return self._to_res(doc)
         except AppException:
             raise
@@ -63,10 +69,10 @@ class CleanDealService:
             updates = {}
 
             if payload.stage:
-                stage = StageModel(
+                stage = FloorModel(
                     stage_number=payload.stage.stage_number,
                     stage_score=payload.stage.stage_score,
-                    questions=[QuestionModel(**q.model_dump()) for q in payload.stage.questions],
+                    questions=[CleanDealQuestionModel(**q.model_dump()) for q in payload.stage.questions],
                 )
                 await self.collection.update_one(
                     {"_id": session_id},

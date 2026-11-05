@@ -2,12 +2,12 @@ import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.core.db import MongoDB
+from app.core.db import mongodb
 from app.core.security import require_roles
 from app.models.userModel import GameEnum
 from app.schema.stageSchema import createStageReq, createStageRes, listStageRes
 from app.schema.userSchema import APIResponse
-from app.services import stageService
+from app.services.stageService import stageService
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 async def get_db() -> AsyncIOMotorDatabase:
-    return await MongoDB.get_database()
+    return await mongodb.get_database()
 
 @router.post("/stage", response_model=APIResponse[createStageRes])
 async def post_stage(
@@ -31,7 +31,8 @@ async def post_stage(
 @router.get("/stage", response_model=APIResponse[List[listStageRes]])
 async def get_all_stages(
     game: GameEnum | None = None,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(require_roles("superadmin"))
 ):
     service = stageService(db)
     stages = await service.get_stages(game=game)
@@ -41,13 +42,14 @@ async def get_all_stages(
 @router.get("/stage/{stage_id}", response_model=APIResponse[createStageRes])
 async def get_stage_by_id(
     stage_id: str,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(require_roles("superadmin"))
 ):
     service = stageService(db)
     stage = await service.get_stage_by_id(stage_id)
     if not stage:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=404, 
             detail="Stage not found"
         )
     return APIResponse(success=True, message="Stage retrieved successfully", data=stage)

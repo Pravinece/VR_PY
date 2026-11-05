@@ -24,6 +24,11 @@ class AssetTypeEnum(str, Enum):
     GUN = "gun"
     SKATE = "skate"
     WHEELS = "wheels"
+
+class GameModeEnum(str, Enum):
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
 class UserModel(BaseModel):
     id: str = Field(default_factory=generate_uuid, alias="_id")
     username: str
@@ -31,6 +36,8 @@ class UserModel(BaseModel):
     password: str
     role: RoleEnum       
     gender: GenderEnum   
+    lastCleanDealSession: str = Field(alias="_id")
+    lastSkatingSession: str = Field(alias="_id")
     is_first_login: bool = True
     created_at: datetime
     updated_at: datetime
@@ -103,24 +110,6 @@ class QuestionModel(BaseModel):
     answer: str
     points: int
 
-class StageModel(BaseModel):
-    stage_number: int
-    stage_score: int
-    questions: List[QuestionModel] = []
-
-class CleanDealSessionModel(BaseModel):
-    id: str = Field(default_factory=generate_uuid, alias="_id")
-    user_id: str
-    attempt: int = 1
-    score: int = 0
-    percentage: float = 0.0
-    time_taken: int = 0
-    played_at: datetime
-    stages: List[StageModel] = []
-
-    model_config = {"populate_by_name": True}
-
-
 class UserBestScoreModel(BaseModel):
     id: str = Field(default_factory=generate_uuid, alias="_id")
     user_id: str                # ref: users._id
@@ -133,12 +122,3 @@ class UserBestScoreModel(BaseModel):
 
     model_config = {"populate_by_name": True}
     
-class StagesModel(BaseModel):
-    id: str = Field(default_factory=generate_uuid, alias="_id")
-    stage_number: int
-    stage_name: str
-    stage_description: str
-    stage_intro: List[str]
-    game: GameEnum
-
-    model_config = {"populate_by_name": True}

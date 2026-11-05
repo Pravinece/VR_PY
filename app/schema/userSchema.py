@@ -27,6 +27,8 @@ class CreateUserRes(BaseModel):
     role: str
     gender: str
     is_first_login: bool
+    lastCleanDealSession: Optional[str] = None
+    lastSkatingSession: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -54,6 +56,8 @@ class UserWithAvatarRes(BaseModel):
     role: str
     gender: str
     is_first_login: bool
+    lastCleanDealSession: Optional[str] = None
+    lastSkatingSession: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     avatars: List[AvatarWithAssetsRes]
