@@ -45,21 +45,26 @@ class BestScoreService:
                 }},
             )
 
-    async def update_cleandeal_best_score(self, user_id: str, session_id: str):
+    async def update_cleandeal_best_score(self, user_id: str, session_id: str, mode: str):
         from app.core.exception import AppException
         sessions = self.collection.database["cleandeal_sessions"]
         session_doc = await sessions.find_one({"_id": session_id, "user_id": user_id})
         if not session_doc:
             raise AppException(status_code=404, message="Session not found for this user")
 
+        # mark session as completed
+        await sessions.update_one(
+            {"_id": session_id},
+            {"$set": {"status": "completed"}}
+        )
+
         total_score = sum(s.get("stage_score", 0) for s in session_doc.get("stages", []))
-        existing = await self.collection.find_one({"user_id": user_id, "game_type": "cleandeal"})
+        existing = await self.collection.find_one({"user_id": user_id, "game_type": "cleandeal", "mode": mode})
         if not existing:
-            from app.models.userModel import UserBestScoreModel
             doc = UserBestScoreModel(
                 user_id=user_id,
                 game_type="cleandeal",
-                mode="default",
+                mode=mode,
                 best_score=total_score,
                 time_taken=session_doc.get("time_taken", 0),
                 session_id=session_id,

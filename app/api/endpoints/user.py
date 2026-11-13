@@ -17,7 +17,7 @@ async def get_db() -> AsyncIOMotorDatabase:
     return await mongodb.get_database()
 
 
-# Only superadmin can create users
+# Only superadmin can create users   
 @router.post("/users", response_model=APIResponse[CreateUserRes])
 async def create_user(
     payload: CreateUserReq,

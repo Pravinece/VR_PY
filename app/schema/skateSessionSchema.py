@@ -1,29 +1,52 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
-from app.models.userModel import BoosterModel, TestModel
+from app.models.userModel import BoosterModel, TestModel, GameModeEnum
 
 
-class PaginatedSkateSessionRes(BaseModel):
-    total: int
-    page: int
-    limit: int
-    total_pages: int
-    sessions: List["SkateSessionRes"]
+# ─── District Models ──────────────────────────────────────
 
-
-class CreateSkateSessionReq(BaseModel):
-    user_id: str
-    mode: str
-    score: int
-    coins: int
-    health: int
-    time: int
+class DistrictReq(BaseModel):
+    district_number: int
+    score: int = 0
+    coins: int = 0
+    health: int = 0
+    time: int = 0
+    points: int = 0
+    start_time: datetime
+    end_time: datetime
     gifts: List[str] = []
     boosters: List[BoosterModel] = []
     test: List[TestModel] = []
 
 
+class DistrictRes(BaseModel):
+    district_number: int
+    score: int
+    coins: int
+    health: int
+    time: int
+    points: int
+    start_time: datetime
+    end_time: datetime
+    gifts: List[str] = []
+    boosters: List[BoosterModel] = []
+    test: List[TestModel] = []
+
+
+# ─── Session Request Models ───────────────────────────────
+
+class CreateSkateSessionReq(BaseModel):
+    user_id: str
+    mode: GameModeEnum
+    attempt: int = 1
+
+
+class UpdateSkateSessionReq(BaseModel):
+    district: DistrictReq
+
+
+# ─── User in Response ─────────────────────────────────────
 
 class SessionUserRes(BaseModel):
     id: str
@@ -33,37 +56,39 @@ class SessionUserRes(BaseModel):
     role: str
 
 
+# ─── Session Response Models ──────────────────────────────
+
 class SkateSessionRes(BaseModel):
     id: str
-    user: SessionUserRes
+    user_data: Optional[SessionUserRes] = None
     mode: str
-    score: int
-    coins: int
-    health: int
-    time: int
+    attempt: int
+    total_score: int
+    total_coins: int
+    total_points: int
+    total_time: int
+    status: str
     played_at: datetime
-    gifts: List[str]
-    boosters: List[BoosterModel]
-    test: List[TestModel]
-
-
-class GiftAssetRes(BaseModel):
-    id: str
-    name: str
-    type: str
-    gender: str
-    image: str
+    districts: List[DistrictRes] = []
 
 
 class SkateSessionWithUserRes(BaseModel):
     id: str
     user: SessionUserRes
     mode: str
-    score: int
-    coins: int
-    health: int
-    time: int
+    attempt: int
+    total_score: int
+    total_coins: int
+    total_points: int
+    total_time: int
+    status: str
     played_at: datetime
-    gifts: List[GiftAssetRes]
-    boosters: List[BoosterModel]
-    test: List[TestModel]
+    districts: List[DistrictRes] = []
+
+
+class PaginatedSkateSessionRes(BaseModel):
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+    sessions: List[SkateSessionRes]

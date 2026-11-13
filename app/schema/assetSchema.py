@@ -6,7 +6,7 @@ from app.models.userModel import GenderEnum, AssetTypeEnum
 
 class CreateAssetReq(BaseModel):
     name: str
-    gender: GenderEnum
+    gender: Optional[GenderEnum] = None  # only required for dress
     type: AssetTypeEnum
     image: str
     is_default: bool = False
@@ -23,7 +23,7 @@ class UpdateAssetReq(BaseModel):
 class AssetRes(BaseModel):
     id: str
     name: str
-    gender: str
+    gender: Optional[str] = None
     type: str
     image: str
     is_default: bool

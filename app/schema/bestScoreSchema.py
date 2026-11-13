@@ -6,6 +6,7 @@ from typing import List, Optional
 class UpdateCleanDealBestScoreReq(BaseModel):
     user_id: str
     session_id: str
+    mode: str
 
 
 class UpdateSkateBestScoreReq(BaseModel):

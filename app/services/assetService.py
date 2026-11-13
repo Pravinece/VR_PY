@@ -14,10 +14,13 @@ class AssetService:
 
     async def create_asset(self, payload: CreateAssetReq) -> AssetRes:
         try:
-            existing = await self.collection.find_one({"type": payload.type.value, "gender": payload.gender.value, "is_default": True})
-            if existing:
-                if payload.is_default and existing["is_default"]:
-                    raise AppException(status_code=409, message=f"A default asset for type already exists")
+            if payload.is_default:
+                conflict_query = {"type": payload.type.value, "is_default": True}
+                if payload.gender:
+                    conflict_query["gender"] = payload.gender.value
+                existing = await self.collection.find_one(conflict_query)
+                if existing:
+                    raise AppException(status_code=409, message="A default asset for this type already exists")
 
             asset = AssetModel(
                 name=payload.name,

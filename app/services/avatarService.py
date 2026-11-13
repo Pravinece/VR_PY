@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 class AvatarService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.collection = db["avatars"]
-        self.assets_collection = db["assets"] 
+        self.assets_collection = db["assets"]
+        self.unlocked_assets = db["unlocked_assets"]
 
     async def create_avatars_for_user(self, user_id: str, session: Optional[ClientSession] = None) -> list[AvatarRes]:
         try:
@@ -20,14 +21,16 @@ class AvatarService:
             if existing:
                 raise AppException(status_code=409, message="Avatars already exist for this user")
 
-            # fetch default assets grouped by gender
             default_assets = await self.assets_collection.find({"is_default": True}, session=session).to_list(length=None)
-            male_asset_ids = [a["_id"] for a in default_assets if a["gender"] == GenderEnum.MALE.value]
-            female_asset_ids = [a["_id"] for a in default_assets if a["gender"] == GenderEnum.FEMALE.value]
+
+            # common assets (gun, skate, wheels) have no gender — equip to both avatars
+            common_ids = [a["_id"] for a in default_assets if not a.get("gender")]
+            male_ids = [a["_id"] for a in default_assets if a.get("gender") == GenderEnum.MALE.value]
+            female_ids = [a["_id"] for a in default_assets if a.get("gender") == GenderEnum.FEMALE.value]
 
             avatars = [
-                AvatarModel(user_id=user_id, gender=GenderEnum.MALE, equipped_assets=male_asset_ids),
-                AvatarModel(user_id=user_id, gender=GenderEnum.FEMALE, equipped_assets=female_asset_ids),
+                AvatarModel(user_id=user_id, gender=GenderEnum.MALE, equipped_assets=male_ids + common_ids),
+                AvatarModel(user_id=user_id, gender=GenderEnum.FEMALE, equipped_assets=female_ids + common_ids),
             ]
             await self.collection.insert_many([a.model_dump(by_alias=True) for a in avatars], session=session)
             return [
@@ -57,7 +60,7 @@ class AvatarService:
 
             # check asset is default or unlocked by user
             if not asset["is_default"]:
-                unlocked = await self.collection.database["unlocked_assets"].find_one(
+                unlocked = await self.unlocked_assets.find_one(
                     {"user_id": user_id, "asset_id": asset_id}
                 )
                 if not unlocked:

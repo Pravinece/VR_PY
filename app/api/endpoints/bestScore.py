@@ -31,7 +31,7 @@ async def update_cleandeal_best_score(
     current_user: dict = Depends(get_current_user),
 ):
     service = BestScoreService(db)
-    await service.update_cleandeal_best_score(payload.user_id, payload.session_id)
+    await service.update_cleandeal_best_score(payload.user_id, payload.session_id, payload.mode)
     return APIResponse(success=True, message="Best score updated successfully", data=None)
 
 

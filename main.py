@@ -1,6 +1,8 @@
 import logging
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.api.router import api_router
 from app.core.db import mongodb
@@ -39,6 +41,13 @@ app = FastAPI(
         "security": [{"BearerAuth": []}],
     },
 )
+
+IMAGES_DIR = os.path.join(settings.UPLOAD_DIR, "images")
+AUDIO_DIR = os.path.join(settings.UPLOAD_DIR, "audio")
+os.makedirs(IMAGES_DIR, exist_ok=True)
+os.makedirs(AUDIO_DIR, exist_ok=True)
+app.mount("/static/images", StaticFiles(directory=IMAGES_DIR), name="images")
+app.mount("/static/audio", StaticFiles(directory=AUDIO_DIR), name="audio")
 
 register_exception_handlers(app)
 

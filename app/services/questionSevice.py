@@ -4,8 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import HTTPException, status
 
 from app.core.exception import AppException
-from app.schema.cleanDealSchema import CleanDealQuestionModel
-from app.schema.questionSchema import createQuestionReq, bulkCreateQuestionReq, updateQuestionReq
+from app.schema.questionSchema import createQuestionReq, bulkCreateQuestionReq, updateQuestionReq, questionModel
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ class questionService:
     async def create_question(self, payload: createQuestionReq):
         await self._verify_stage_exists(payload.stage_id)
         
-        question_data = CleanDealQuestionModel(**payload.model_dump())
+        question_data = questionModel(**payload.model_dump())
         doc = question_data.model_dump(by_alias=True)
         
         await self.collection.insert_one(doc)
@@ -46,7 +45,7 @@ class questionService:
 
         documents = []
         for q_req in payload.questions:
-            question_data = CleanDealQuestionModel(**q_req.model_dump())
+            question_data = questionModel(**q_req.model_dump())
             doc = question_data.model_dump(by_alias=True)
             doc["id"] = doc["_id"]  # keep tracking id
             documents.append(doc)

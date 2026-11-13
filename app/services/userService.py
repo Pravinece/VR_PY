@@ -156,6 +156,8 @@ class UserService:
                 emp_id=user["emp_id"],
                 role=user["role"],
                 gender=user["gender"],
+                lastSkatingSession=user.get("lastSkatingSession"),
+                lastCleanDealSession=user.get("lastCleanDealSession"),
                 is_first_login=user["is_first_login"],
                 created_at=user["created_at"],
                 updated_at=user["updated_at"],
