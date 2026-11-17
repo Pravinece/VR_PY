@@ -54,7 +54,7 @@ async def get_all_skate_sessions(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=10, ge=1, le=100),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    mode: str = Query(default="easy", regex="^(easy|medium|hard)$"),
+    mode: str = Query(default="easy", pattern="^(easy|medium|hard)$"),
     search: str = Query(default=None),
     current_user: dict = Depends(require_roles("superadmin")),
 ):

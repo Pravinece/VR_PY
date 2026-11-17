@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan,
-    title="VR_PY",
+    title="TIAA API",
     root_path="/tiaa",
     debug=True,
     swagger_ui_parameters={"persistAuthorization": True},
